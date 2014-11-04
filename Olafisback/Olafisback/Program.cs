@@ -1,5 +1,10 @@
-﻿#region
-
+#region
+/*
+* Credits to:
+ * Eskor
+ * Roach_
+ * xSalice
+ */
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -22,8 +27,17 @@ namespace Olafisback
         public static List<Spell> SpellList = new List<Spell>();
 
         public static Spell Q;
+        public static Spell Q2;
         public static Spell W;
         public static Spell E;
+        //Items
+        
+        public static Items.Item HDR;
+        public static Items.Item BKR;
+        public static Items.Item TMT;
+        public static Items.Item BWC;
+        public static Items.Item YOU;
+        public static Items.Item RAO;
 
         //Menu
         public static Menu Config;
@@ -42,14 +56,26 @@ namespace Olafisback
 
             //Create the spells
             Q = new Spell(SpellSlot.Q, 1000);
+            Q2 =new Spell(SpellSlot.Q, 550);
             W = new Spell(SpellSlot.W);
             E = new Spell(SpellSlot.E, 325);
 
-            Q.SetSkillshot(0.25f, 90f, 1600f, false, SkillshotType.SkillshotLine);
+            Q.SetSkillshot(0.25f, 75f, 1600f, false, SkillshotType.SkillshotLine);
+            Q2.SetSkillshot(0.25f, 75f, 1600f, false, SkillshotType.SkillshotLine);
 
             SpellList.Add(Q);
+            SpellList.Add(Q2);
             SpellList.Add(W);
             SpellList.Add(E);
+            
+            //items
+            HDR = new Items.Item(3074, 225f);
+            TMT = new Items.Item(3077, 225f);
+            BKR = new Items.Item(3153, 450f);
+            BWC = new Items.Item(3144, 450f);
+            YOU = new Items.Item(3142, 225f);
+            RAO = new Items.Item(3143, 490f);
+            
 
             //Create the menu
             Config = new Menu(ChampionName, ChampionName, true);
@@ -68,12 +94,15 @@ namespace Olafisback
             Config.SubMenu("Combo").AddItem(new MenuItem("UseQCombo", "Use Q")).SetValue(true);
             Config.SubMenu("Combo").AddItem(new MenuItem("UseWCombo", "Use W")).SetValue(true);
             Config.SubMenu("Combo").AddItem(new MenuItem("UseECombo", "Use E")).SetValue(true);
+            Config.SubMenu("Combo").AddItem(new MenuItem("UseItems", "Use Items")).SetValue(true);
             Config.SubMenu("Combo")
                 .AddItem(new MenuItem("ComboActive", "Combo!").SetValue(new KeyBind(32, KeyBindType.Press)));
 
             Config.AddSubMenu(new Menu("Harass", "Harass"));
-            Config.SubMenu("Harass").AddItem(new MenuItem("UseQHarass", "Use Q").SetValue(true));
+            Config.SubMenu("Harass").AddItem(new MenuItem("UseQHarass", "Use Q").SetValue(false));
+            Config.SubMenu("Harass").AddItem(new MenuItem("UseQ2Harass", "Use short Q").SetValue(true));
             Config.SubMenu("Harass").AddItem(new MenuItem("UseEHarass", "Use E").SetValue(true));
+            Config.SubMenu("Harass").AddItem(new MenuItem("Minman", "Min Mana To Q Harass").SetValue(new Slider(30, 100, 0)));
             Config.SubMenu("Harass")
                 .AddItem(
                     new MenuItem("HarassActive", "Harass!").SetValue(new KeyBind("C".ToCharArray()[0], KeyBindType.Press)));
@@ -81,6 +110,8 @@ namespace Olafisback
             Config.AddSubMenu(new Menu("Drawings", "Drawings"));
             Config.SubMenu("Drawings")
                 .AddItem(new MenuItem("QRange", "Q range").SetValue(new Circle(true, Color.FromArgb(255, 255, 255, 255))));
+            Config.SubMenu("Drawings")
+                .AddItem(new MenuItem("SQRange", "Short Q range").SetValue(new Circle(true, Color.FromArgb(255, 255, 255, 255))));
             Config.SubMenu("Drawings")
                 .AddItem(
                     new MenuItem("WRange", "W range").SetValue(new Circle(false, Color.FromArgb(255, 255, 255, 255))));
@@ -127,29 +158,63 @@ namespace Olafisback
 
             if (target.IsValidTarget() && Config.Item("UseQCombo").GetValue<bool>() && Q.IsReady() && Player.Distance(target) <= Q.Range)
             {
-                Q.Cast(target, true);
+                PredictionOutput Qpredict = Q.GetPrediction(target);
+                Q.Cast(Qpredict.CastPosition);
             }
+            
             if (target.IsValidTarget() && Config.Item("UseECombo").GetValue<bool>() && E.IsReady() && Player.Distance(target) <= E.Range)
-            {
+            
                 E.CastOnUnit(target);
-            }
-            if (target.IsValidTarget() && Config.Item("UseWCombo").GetValue<bool>() && W.IsReady() && Player.Distance(target) <= Player.AttackRange)
-            {
+            
+            if (target.IsValidTarget() && Config.Item("UseWCombo").GetValue<bool>() && W.IsReady() && Player.Distance(target) <= 225f)
+            
                 W.Cast();
+            
+            if (Config.Item("UseItems").GetValue<bool>()) 
+            {
+                    BKR.Cast(target);
+                    
+                    BWC.Cast(target);
+                    if (Player.Distance(target) <= HDR.Range)
+                    {
+                        HDR.Cast();
+                    }
+                    if (Player.Distance(target) <= TMT.Range)
+                    {
+                        TMT.Cast();
+                    }
+                    if (Player.Distance(target) <= 400)
+                    {
+                        YOU.Cast();
+                    }
+                    if (Player.Distance(target) <= RAO.Range)
+                    {
+                        RAO.Cast();
+                    }
             }
+            
+            
         }
         private static void Harass()
         {
             var target = SimpleTs.GetTarget(Q.Range, SimpleTs.DamageType.Physical);
-            if (target.IsValidTarget() && Q.IsReady() && Config.Item("UseQHarass").GetValue<bool>() && Player.Distance(target) <= Q.Range)
+            if (target.IsValidTarget() && Q.IsReady() && Config.Item("UseQHarass").GetValue<bool>() && 
+                    Player.Mana / Player.MaxMana * 100 > Config.Item("Minman").GetValue<Slider>().Value && Player.Distance(target) <= Q.Range)
             {
                 PredictionOutput Qpredict = Q.GetPrediction(target);
                 if (Qpredict.Hitchance >= HitChance.High)
                     Q.Cast(Qpredict.CastPosition);
             }
+            if (target.IsValidTarget() && Q.IsReady() && Config.Item("UseQ2Harass").GetValue<bool>() && 
+                    Player.Mana / Player.MaxMana * 100 > Config.Item("Minman").GetValue<Slider>().Value && Player.Distance(target) <= Q2.Range)
+            {
+                PredictionOutput Q2predict = Q2.GetPrediction(target);
+                if (Q2predict.Hitchance >= HitChance.High)
+                    Q2.Cast(Q2predict.CastPosition);
+            }
             if (E.IsReady() && Config.Item("UseEHarass").GetValue<bool>() && Player.Distance(target) <= E.Range)
                 E.CastOnUnit(target);
         }
-
+       
     }
 }
