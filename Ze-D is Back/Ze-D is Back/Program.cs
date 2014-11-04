@@ -298,6 +298,7 @@ namespace Zed
 
         private static void TheLine()
         {
+            _player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
             if (PingPos.X == 0 && PingPos.Y == 0)
             {
                 return;
