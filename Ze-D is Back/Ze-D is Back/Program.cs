@@ -52,7 +52,7 @@ namespace Zed
             _lotis = new Items.Item(3190, 590f);
             _youmuu = new Items.Item(3142, 10);
             _igniteSlot = _player.GetSpellSlot("SummonerDot");
-            // Just menu things
+            // Just menu things test
             _config = new Menu("Ze-D Is Back", "Ze-D Is Back", true);
 
             var targetSelectorMenu = new Menu("Target Selector", "Target Selector");
