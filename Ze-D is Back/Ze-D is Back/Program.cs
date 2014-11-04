@@ -1,4 +1,4 @@
-﻿#region
+#region
 /*
 * Credits to:
  * Kortatu
@@ -25,6 +25,7 @@ namespace Zed
         private static Menu _config;
         private static Obj_AI_Hero _player;
         private static SpellSlot _igniteSlot;
+        public static Vector3 PingPos;
         private static Items.Item _tiamat, _hydra, _blade, _bilge, _rand, _lotis, _youmuu;
 
         private static void Main(string[] args)
@@ -68,6 +69,8 @@ namespace Zed
             _config.SubMenu("Combo").AddItem(new MenuItem("UseIgnitecombo", "Use Ignite(rush for it)")).SetValue(true);
             _config.SubMenu("Combo")
                 .AddItem(new MenuItem("ActiveCombo", "Combo!").SetValue(new KeyBind(32, KeyBindType.Press)));
+            _config.SubMenu("Combo")
+    .AddItem(new MenuItem("TheLine", "The Line Combo").SetValue(new KeyBind(226, KeyBindType.Press)));
 
             //Harass
             _config.AddSubMenu(new Menu("Harass", "Harass"));
@@ -181,6 +184,17 @@ namespace Zed
             Game.PrintChat("<font color='#881df2'>Zed by Diabaths & jackisback</font> Loaded.");
             Drawing.OnDraw += Drawing_OnDraw;
             Game.OnGameUpdate += Game_OnGameUpdate;
+            Game.OnGameSendPacket += Game_OnGameSendPacket;
+        }
+
+        private static void Game_OnGameSendPacket(GamePacketEventArgs args)
+        {
+            if (args.PacketData[0] == Packet.C2S.Ping.Header)
+            {
+                Game.PrintChat("Ping Pos Saved !");
+                PingPos = Game.CursorPos;
+                Game.PrintChat(PingPos.ToString());
+            }
         }
 
         private static void Game_OnGameUpdate(EventArgs args)
@@ -188,6 +202,10 @@ namespace Zed
             if (_config.Item("ActiveCombo").GetValue<KeyBind>().Active)
             {
                 Combo();
+            }
+            if (_config.Item("TheLine").GetValue<KeyBind>().Active)
+            {
+                TheLine();
             }
             if (_config.Item("ActiveHarass").GetValue<KeyBind>().Active)
             {
@@ -272,6 +290,33 @@ namespace Zed
             {
                 Harass();
             }
+
+            UseItemes(target);
+            CastQ(target);
+            CastE();
+        }
+
+        private static void TheLine()
+        {
+            if (PingPos.X == 0 && PingPos.Y == 0)
+            {
+                return;
+            }
+            var target = SimpleTs.GetTarget(_r.Range, SimpleTs.DamageType.Physical);
+            _r.Cast(target, true);
+
+            if (target != null && ShadowStage == ShadowCastStage.First)
+            {
+                _w.Cast(PingPos, false);
+            }
+            CastQ(target);
+            CastE();
+
+            if (target != null && ShadowStage == ShadowCastStage.Second)
+            {
+                _w.Cast();
+            }
+
 
             UseItemes(target);
             CastQ(target);
