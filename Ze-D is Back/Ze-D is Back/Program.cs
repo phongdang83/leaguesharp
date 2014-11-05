@@ -329,7 +329,7 @@ namespace Zed
             var target = SimpleTs.GetTarget(2000, SimpleTs.DamageType.Physical);
             var useItemsH = _config.Item("UseItemsharass").GetValue<bool>();
 
-            if (target.IsValidTarget() && _w.IsReady() && _q.IsReady() && _config.Item("UseWH").GetValue<bool>() &&
+            if (target.IsValidTarget() && ShadowStage == ShadowCastStage.First && _q.IsReady() && _config.Item("UseWH").GetValue<bool>() &&
                 ObjectManager.Player.Mana >
                 ObjectManager.Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost +
                 ObjectManager.Player.Spellbook.GetSpell(SpellSlot.W).ManaCost && target.Distance(_player.Position) < 720)
