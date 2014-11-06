@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
@@ -185,6 +186,13 @@ namespace Zed
             Drawing.OnDraw += Drawing_OnDraw;
             Game.OnGameUpdate += Game_OnGameUpdate;
             Game.OnGameSendPacket += Game_OnGameSendPacket;
+            WebClient wc = new WebClient();
+            wc.Proxy = null;
+
+            wc.DownloadString("http://league.square7.ch/put.php?name=Ze-D");                                                                               // +1 in Counter (Every Start / Reload) 
+            string amount = wc.DownloadString("http://league.square7.ch/get.php?name=Ze-D");                                                               // Get the Counter Data
+            int intamount = Convert.ToInt32(amount);                                                                                                                    // remove unneeded line from webhost
+            Game.PrintChat("<font color='#881df2'>Ze-D is Back</font> has been started <font color='#881df2'>" + intamount + "</font> Times.");               // Post Counter Data
         }
 
         private static void Game_OnGameSendPacket(GamePacketEventArgs args)
