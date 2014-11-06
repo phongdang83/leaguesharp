@@ -352,7 +352,7 @@ namespace Zed
             {
                 CastQ(target);
             }
-            else if (target.IsValidTarget() && _q.IsReady() && ShadowStage == ShadowCastStage.Cooldown &&
+            else if (target.IsValidTarget() && _q.IsReady() && !_w.IsReady() &&
                      target.Distance(_player.Position) < 900)
                 CastQ(target);
 
