@@ -569,9 +569,8 @@ namespace Zed
         {
             if (ShadowStage != ShadowCastStage.First)
                 return;
-
+            if (LastCastedSpell.LastCastPacketSent.Slot != SpellSlot.W)
             _w.Cast(target.Position);
-
 
         }
 
