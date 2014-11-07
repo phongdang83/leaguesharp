@@ -651,7 +651,10 @@ namespace Zed
 
         private static void Drawing_OnDraw(EventArgs args)
         {
-
+            if (_config.Item("TheLine").GetValue<KeyBind>().Active)
+            {
+                Utility.DrawCircle(linepos, 75, Color.Blue);
+            }
             if (_config.Item("shadowd").GetValue<bool>())
             {
                 if ((Shadow != null))
