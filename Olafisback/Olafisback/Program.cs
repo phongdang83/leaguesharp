@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Net
 using LeagueSharp;
 using LeagueSharp.Common;
 
@@ -123,7 +124,14 @@ namespace Olafisback
             //Add the events we are going to use:
             Drawing.OnDraw += Drawing_OnDraw;
             Game.OnGameUpdate += Game_OnGameUpdate;
-            Game.PrintChat(ChampionName + " Loaded!");
+            Game.PrintChat("<font color='#881df2'>Olaf is Back</font> Loaded!");
+            WebClient wc = new WebClient();
+            wc.Proxy = null;
+
+            wc.DownloadString("http://league.square7.ch/put.php?name=Olaf-is-back");                                   
+            string amount = wc.DownloadString("http://league.square7.ch/get.php?name=Olaf-is-back");    
+            int intamount = Convert.ToInt32(amount);
+            Game.PrintChat("<font color='#881df2'>Olaf is Back</font> has been started <font color='#881df2'>" + intamount + "</font> Times.");  
         }
 
         private static void Drawing_OnDraw(EventArgs args)
