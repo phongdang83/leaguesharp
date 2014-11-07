@@ -329,10 +329,6 @@ namespace Zed
                 _w.Cast();
             }
 
-
-            
-            CastQ(target);
-            CastE();
         }
 
         private static void Harass()
