@@ -26,8 +26,9 @@ namespace Zed
         private static Menu _config;
         private static Obj_AI_Hero _player;
         private static SpellSlot _igniteSlot;
-        public static Vector3 PingPos;
         private static Items.Item _tiamat, _hydra, _blade, _bilge, _rand, _lotis, _youmuu;
+        private static Vector3 linepos;
+        private static Vector3 castpos;
 
         private static void Main(string[] args)
         {
@@ -185,7 +186,6 @@ namespace Zed
             Game.PrintChat("<font color='#881df2'>Zed by Diabaths & jackisback</font> Loaded.");
             Drawing.OnDraw += Drawing_OnDraw;
             Game.OnGameUpdate += Game_OnGameUpdate;
-            Game.OnGameSendPacket += Game_OnGameSendPacket;
             WebClient wc = new WebClient();
             wc.Proxy = null;
 
@@ -195,13 +195,12 @@ namespace Zed
             Game.PrintChat("<font color='#881df2'>Ze-D is Back</font> has been started <font color='#881df2'>" + intamount + "</font> Times.");               // Post Counter Data
         }
 
-        private static void Game_OnGameSendPacket(GamePacketEventArgs args)
+        private static void OnWndProc(WndEventArgs args)
         {
-            if (args.PacketData[0] == Packet.C2S.Ping.Header)
+            if (args.Msg == 514)
             {
-                Game.PrintChat("Ping Pos Saved !");
-                PingPos = Game.CursorPos;
-                Game.PrintChat(PingPos.ToString());
+                linepos = Game.CursorPos;
+
             }
         }
 
@@ -306,8 +305,9 @@ namespace Zed
 
         private static void TheLine()
         {
+
             _player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
-            if (PingPos.X == 0 && PingPos.Y == 0)
+            if ((linepos.X == 0 && linepos.Y == 0) || !_r.IsReady())
             {
                 return;
             }
@@ -316,15 +316,22 @@ namespace Zed
 
             if (target != null && ShadowStage == ShadowCastStage.First)
             {
-                _w.Cast(PingPos, false);
+                UseItemes(target);
+                if (LastCastedSpell.LastCastPacketSent.Slot != SpellSlot.W)
+                {
+                    castpos.X = linepos.X - target.ServerPosition.X + 550f;
+                    castpos.Y = linepos.X - target.ServerPosition.X + 550f;
+                    castpos.Z = target.ServerPosition.Z;
+                    _w.Cast(linepos,false);
+                }
             }
             if (target != null && _config.Item("UseIgnitecombo").GetValue<bool>() && _igniteSlot != SpellSlot.Unknown &&
                 _player.SummonerSpellbook.CanUseSpell(_igniteSlot) == SpellState.Ready)
-            UseItemes(target);
+                
             CastQ(target);
             CastE();
 
-            if (target != null && ShadowStage == ShadowCastStage.Second)
+            if (target != null && ShadowStage == ShadowCastStage.Second && (target.Distance(Shadow.ServerPosition) < target.Distance(_player.Position)))
             {
                 _w.Cast();
             }
@@ -346,7 +353,7 @@ namespace Zed
                     CastQ(target);
             }
             else if (target.IsValidTarget() && _q.IsReady() &&
-                     (target.Distance(_player.Position) < 900 ||
+                     (target.Distance(_player.Position) < 720 ||
                       (Shadow != null && target.Distance(Shadow.ServerPosition) < 900)))
             {
                 CastQ(target);
