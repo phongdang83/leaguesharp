@@ -306,13 +306,20 @@ namespace Zed
 
         private static void TheLine()
         {
-
-            _player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            var target = SimpleTs.GetTarget(_r.Range, SimpleTs.DamageType.Physical);
+            if (target == null)
+            {
+                _player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            }
+            else
+            {
+                _player.IssueOrder(GameObjectOrder.AttackUnit, target);
+            }
             if ((linepos.X == 0 && linepos.Y == 0) || !_r.IsReady())
             {
                 return;
             }
-            var target = SimpleTs.GetTarget(_r.Range, SimpleTs.DamageType.Physical);
+
             _r.Cast(target, true);
 
             if (target != null && ShadowStage == ShadowCastStage.First)
@@ -323,16 +330,16 @@ namespace Zed
                     castpos.X = linepos.X - target.ServerPosition.X + 550f;
                     castpos.Y = linepos.X - target.ServerPosition.X + 550f;
                     castpos.Z = target.ServerPosition.Z;
-                    _w.Cast(linepos,false);
+                    _w.Cast(linepos, false);
                 }
             }
             if (target != null && _config.Item("UseIgnitecombo").GetValue<bool>() && _igniteSlot != SpellSlot.Unknown &&
                 _player.SummonerSpellbook.CanUseSpell(_igniteSlot) == SpellState.Ready)
-                
-            CastQ(target);
+
+                CastQ(target);
             CastE();
 
-            if (target != null && ShadowStage == ShadowCastStage.Second && (target.Distance(Shadow.ServerPosition) < target.Distance(_player.Position)))
+            if (target != null && Shadow != null && (target.Distance(Shadow.ServerPosition) < target.Distance(_player.Position)))
             {
                 _w.Cast();
             }
