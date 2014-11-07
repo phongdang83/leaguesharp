@@ -318,6 +318,9 @@ namespace Zed
             {
                 _w.Cast(PingPos, false);
             }
+            if (target != null && _config.Item("UseIgnitecombo").GetValue<bool>() && _igniteSlot != SpellSlot.Unknown &&
+                _player.SummonerSpellbook.CanUseSpell(_igniteSlot) == SpellState.Ready)
+            UseItemes(target);
             CastQ(target);
             CastE();
 
@@ -327,7 +330,7 @@ namespace Zed
             }
 
 
-            UseItemes(target);
+            
             CastQ(target);
             CastE();
         }
