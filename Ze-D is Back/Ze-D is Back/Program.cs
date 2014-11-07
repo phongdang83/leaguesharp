@@ -186,6 +186,7 @@ namespace Zed
             Game.PrintChat("<font color='#881df2'>Zed by Diabaths & jackisback</font> Loaded.");
             Drawing.OnDraw += Drawing_OnDraw;
             Game.OnGameUpdate += Game_OnGameUpdate;
+            Game.OnWndProc += OnWndProc;
             WebClient wc = new WebClient();
             wc.Proxy = null;
 
