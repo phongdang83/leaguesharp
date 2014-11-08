@@ -42,7 +42,7 @@ namespace Olafisback
 
         //Menu
         public static Menu Config;
-
+        private static GameObject _axeObj;
         private static Obj_AI_Hero Player;
 
         private static void Main(string[] args)
@@ -124,6 +124,8 @@ namespace Olafisback
             //Add the events we are going to use:
             Drawing.OnDraw += Drawing_OnDraw;
             Game.OnGameUpdate += Game_OnGameUpdate;
+            GameObject.OnCreate += GameObject_OnCreate;
+            GameObject.OnDelete += GameObject_OnDelete;
             Game.PrintChat("<font color='#881df2'>Olaf is Back</font> Loaded!");
             WebClient wc = new WebClient();
             wc.Proxy = null;
@@ -134,8 +136,23 @@ namespace Olafisback
             Game.PrintChat("<font color='#881df2'>Olaf is Back</font> has been started <font color='#881df2'>" + intamount + "</font> Times.");  
         }
 
+        private static void GameObject_OnCreate(GameObject obj, EventArgs args)
+        {
+            if (obj.Name == "olaf_axe_totem_team_id_green.troy")
+                _axeObj = obj;
+        }
+
+        private static void GameObject_OnDelete(GameObject obj, EventArgs args)
+        {
+            if (obj.Name == "olaf_axe_totem_team_id_green.troy")
+                _axeObj = null;
+        }
         private static void Drawing_OnDraw(EventArgs args)
         {
+            {
+                if (_axeObj != null)
+                    Utility.DrawCircle(_axeObj.Position, 100, Color.Yellow, 6);
+            }
             //Draw the ranges of the spells.
             foreach (var spell in SpellList)
             {
