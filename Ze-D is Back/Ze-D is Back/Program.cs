@@ -335,8 +335,11 @@ namespace Zed
             }
             if (target != null && _config.Item("UseIgnitecombo").GetValue<bool>() && _igniteSlot != SpellSlot.Unknown &&
                 _player.SummonerSpellbook.CanUseSpell(_igniteSlot) == SpellState.Ready)
+            {
+                    _player.SummonerSpellbook.CastSpell(_igniteSlot, target);
+            }
 
-                CastQ(target);
+            CastQ(target);
             CastE();
 
             if (target != null && Shadow != null && (target.Distance(Shadow.ServerPosition) < target.Distance(_player.Position)))
