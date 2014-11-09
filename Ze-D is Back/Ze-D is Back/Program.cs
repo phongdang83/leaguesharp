@@ -330,7 +330,7 @@ namespace Zed
                     castpos.X = linepos.X - target.ServerPosition.X + 550f;
                     castpos.Y = linepos.X - target.ServerPosition.X + 550f;
                     castpos.Z = target.ServerPosition.Z;
-                    _w.Cast(linepos, false);
+                    _w.Cast(castpos, false);
                 }
             }
             if (target != null && _config.Item("UseIgnitecombo").GetValue<bool>() && _igniteSlot != SpellSlot.Unknown &&
