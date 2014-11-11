@@ -29,6 +29,8 @@ namespace Zed
         private static Items.Item _tiamat, _hydra, _blade, _bilge, _rand, _lotis, _youmuu;
         private static Vector3 linepos;
         private static Vector3 castpos;
+        private static int shadowdelay = 0;
+        private static int delayw = 300;
 
         private static void Main(string[] args)
         {
@@ -583,12 +585,14 @@ namespace Zed
         }
 
         private static void CastW(Obj_AI_Base target)
-        {
+        {      
+            if (delayw >= Environment.TickCount - shadowdelay)
+                return;
             if (ShadowStage != ShadowCastStage.First)
                 return;
-            if (LastCastedSpell.LastCastPacketSent.Slot != SpellSlot.W)
             _w.Cast(target.Position);
-
+            shadowdelay = Environment.TickCount;
+ 
         }
 
         private static void CastQ(Obj_AI_Base target)
