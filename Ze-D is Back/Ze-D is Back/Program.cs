@@ -371,24 +371,26 @@ namespace Zed
             var target = SimpleTs.GetTarget(2000, SimpleTs.DamageType.Physical);
             var useItemsH = _config.Item("UseItemsharass").GetValue<bool>();
 
-            if (target.IsValidTarget() && _w.IsReady() && _q.IsReady() && _config.Item("UseWH").GetValue<bool>() &&
+            if (target.IsValidTarget() && !_w.IsReady() && _q.IsReady() && 
+                           (target.Distance(_player.Position) < 900 || target.Distance(Shadow.ServerPosition) < 900))
+            {
+                CastQ(target);
+            }
+            else 
+            {
+                if (target.IsValidTarget() && _w.IsReady() && _q.IsReady() && _config.Item("UseWH").GetValue<bool>() &&
                 ObjectManager.Player.Mana >
                 ObjectManager.Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost +
                 ObjectManager.Player.Spellbook.GetSpell(SpellSlot.W).ManaCost && target.Distance(_player.Position) < 720)
-            {
-                CastW(target);
-                if (target.IsValidTarget() && Shadow != null && target.Distance(Shadow.ServerPosition) < 900)
+                {
+                    CastW(target);
+                    
+                    if (target.IsValidTarget() && Shadow != null && target.Distance(Shadow.ServerPosition) < 900)
+                    
                     CastQ(target);
+                }
             }
-            else if (target.IsValidTarget() && _q.IsReady() &&
-                     (target.Distance(_player.Position) < 900 ||
-                      (Shadow != null && target.Distance(Shadow.ServerPosition) < 900)))
-            {
-                CastQ(target);
-            }
-            else if (target.IsValidTarget() && _q.IsReady() && ShadowStage == ShadowCastStage.Cooldown &&
-                     target.Distance(_player.Position) < 900)
-                CastQ(target);
+
 
             if (useItemsH && _tiamat.IsReady() && target.Distance(_player.Position) < _tiamat.Range)
             {
