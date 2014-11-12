@@ -29,6 +29,8 @@ namespace Zed
         private static Items.Item _tiamat, _hydra, _blade, _bilge, _rand, _lotis, _youmuu;
         private static Vector3 linepos;
         private static Vector3 castpos;
+        private static Vector3 wpos;
+        private static Vector3 rpos;
         private static int shadowdelay = 0;
         private static int delayw = 300;
 
@@ -238,9 +240,20 @@ namespace Zed
             {
                 if (ObjectManager.Get<Obj_AI_Hero>().Count(hero =>
                     hero.IsValidTarget() && (hero.Distance(ObjectManager.Player.ServerPosition) <= _e.Range ||
-                                             (Shadow != null && hero.Distance(Shadow.ServerPosition) <= _e.Range))) > 0)
+                                             (WShadow != null && hero.Distance(WShadow.ServerPosition) <= _e.Range))) > 0)
                     _e.Cast();
             }
+
+
+            if (LastCastedSpell.LastCastPacketSent.Slot == SpellSlot.R)
+            {
+                Obj_AI_Minion shadow;
+                shadow = ObjectManager.Get<Obj_AI_Minion>()
+                        .FirstOrDefault(minion => minion.IsVisible && minion.IsAlly  && minion.Name == "Shadow");
+              
+                rpos = shadow.ServerPosition; 
+            }
+
             _player = ObjectManager.Player;
             _orbwalker.SetAttack(true);
 
@@ -291,7 +304,7 @@ namespace Zed
                 CastW(target);
                 _w.Cast();
             }
-            if (target != null && ShadowStage == ShadowCastStage.Second && _config.Item("UseWC").GetValue<bool>() && target.Distance(Shadow.ServerPosition) < target.Distance(_player.Position))
+            if (target != null && ShadowStage == ShadowCastStage.Second && _config.Item("UseWC").GetValue<bool>() && target.Distance(WShadow.ServerPosition) < target.Distance(_player.Position))
             {
                 _w.Cast();
             }
@@ -356,10 +369,10 @@ namespace Zed
                 _player.SummonerSpellbook.CastSpell(_igniteSlot, target);
             }
 
-            CastQ(target);
+            _q.Cast(target.Position);
             CastE();
 
-            if (target != null && Shadow != null && target.Distance(_player.Position) > 250 && (target.Distance(Shadow.ServerPosition) < target.Distance(_player.Position)))
+            if (target != null && WShadow != null && target.Distance(_player.Position) > 250 && (target.Distance(WShadow.ServerPosition) < target.Distance(_player.Position)))
             {
                 _w.Cast();
             }
@@ -372,7 +385,7 @@ namespace Zed
             var useItemsH = _config.Item("UseItemsharass").GetValue<bool>();
 
             if (target.IsValidTarget() && !_w.IsReady() && _q.IsReady() && 
-                           (target.Distance(_player.Position) < 900 || target.Distance(Shadow.ServerPosition) < 900))
+                           (target.Distance(_player.Position) < 900 || target.Distance(WShadow.ServerPosition) < 900))
             {
                 CastQ(target);
             }
@@ -384,9 +397,12 @@ namespace Zed
                 ObjectManager.Player.Spellbook.GetSpell(SpellSlot.W).ManaCost && target.Distance(_player.Position) < 720)
                 {
                     CastW(target);
+                    if (ObjectManager.Player.Mana >
+                       ObjectManager.Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost + ObjectManager.Player.Spellbook.GetSpell(SpellSlot.E).ManaCost)
+                    CastE();
                     
-                    if (target.IsValidTarget() && Shadow != null && target.Distance(Shadow.ServerPosition) < 900)
-                    
+                    if (target.IsValidTarget() && WShadow != null && target.Distance(WShadow.ServerPosition) < 900)
+                        
                     CastQ(target);
                 }
             }
@@ -401,6 +417,7 @@ namespace Zed
                 _hydra.Cast();
             }
             CastE();
+            
         }
 
         private static void Laneclear()
@@ -579,15 +596,26 @@ namespace Zed
             }
         }
 
-        private static Obj_AI_Minion Shadow
+        private static Obj_AI_Minion WShadow
         {
             get
             {
                 return
                     ObjectManager.Get<Obj_AI_Minion>()
-                        .FirstOrDefault(minion => minion.IsVisible && minion.IsAlly && minion.Name == "Shadow");
+                        .FirstOrDefault(minion => minion.IsVisible && minion.IsAlly  && (minion.ServerPosition != rpos) && minion.Name == "Shadow" );
             }
         }
+        private static Obj_AI_Minion RShadow
+        {
+            get
+            {
+                return
+                    ObjectManager.Get<Obj_AI_Minion>()
+                        .FirstOrDefault(minion => minion.IsVisible && minion.IsAlly  && (minion.ServerPosition == rpos) && minion.Name == "Shadow");
+            }
+        }
+
+
 
         private static ShadowCastStage ShadowStage
         {
@@ -617,9 +645,9 @@ namespace Zed
             if (!_q.IsReady()) return;
             _q.UpdateSourcePosition(ObjectManager.Player.ServerPosition, ObjectManager.Player.ServerPosition);
 
-            if (Shadow != null)
+            if (WShadow != null)
             {
-                _q.UpdateSourcePosition(Shadow.ServerPosition, Shadow.ServerPosition);
+                _q.UpdateSourcePosition(WShadow.ServerPosition, WShadow.ServerPosition);
                 _q.Cast(target, false, true);
                 _q.UpdateSourcePosition(ObjectManager.Player.ServerPosition, ObjectManager.Player.ServerPosition);
                 _q.Cast(target, false, true);
@@ -635,7 +663,7 @@ namespace Zed
                     hero =>
                         hero.IsValidTarget() &&
                         (hero.Distance(ObjectManager.Player.ServerPosition) <= _e.Range ||
-                         (Shadow != null && hero.Distance(Shadow.ServerPosition) <= _e.Range))) > 0)
+                         (WShadow != null && hero.Distance(WShadow.ServerPosition) <= _e.Range))) > 0)
                 _e.Cast();
         }
 
@@ -665,16 +693,16 @@ namespace Zed
                 {
                     _q.Cast(target);
                 }
-                else if (Shadow != null && Shadow.Distance(target) <= _q.Range)
+                else if (WShadow != null && WShadow.Distance(target) <= _q.Range)
                 {
-                    _q.UpdateSourcePosition(Shadow.ServerPosition, Shadow.ServerPosition);
+                    _q.UpdateSourcePosition(WShadow.ServerPosition, WShadow.ServerPosition);
                     _q.Cast(target);
                 }
             }
             if (_e.IsReady() && _config.Item("UseEM").GetValue<bool>())
             {
                 var t = SimpleTs.GetTarget(_e.Range, SimpleTs.DamageType.Physical);
-                if (_e.GetDamage(t) > t.Health && (_player.Distance(t) <= _e.Range || Shadow.Distance(t) <= _e.Range))
+                if (_e.GetDamage(t) > t.Health && (_player.Distance(t) <= _e.Range || WShadow.Distance(t) <= _e.Range))
                 {
                     _e.Cast();
                 }
@@ -683,6 +711,11 @@ namespace Zed
 
         private static void Drawing_OnDraw(EventArgs args)
         {
+            if (RShadow != null)
+            {
+                Utility.DrawCircle(RShadow.ServerPosition, RShadow.BoundingRadius * 2, Color.Blue);
+            }
+
             if (_config.Item("TheLine").GetValue<KeyBind>().Active)
             {
                 Utility.DrawCircle(linepos, 75, Color.Blue);
@@ -690,15 +723,15 @@ namespace Zed
             }
             if (_config.Item("shadowd").GetValue<bool>())
             {
-                if ((Shadow != null))
+                if (WShadow != null)
                 {
                     if (ShadowStage == ShadowCastStage.Cooldown)
                     {
-                        Utility.DrawCircle(Shadow.ServerPosition, Shadow.BoundingRadius * 2, Color.Red);
+                        Utility.DrawCircle(WShadow.ServerPosition, WShadow.BoundingRadius * 2, Color.Red);
                     }
-                    else if (Shadow != null && ShadowStage == ShadowCastStage.Second)
+                    else if (WShadow != null && ShadowStage == ShadowCastStage.Second)
                     {
-                        Utility.DrawCircle(Shadow.ServerPosition, Shadow.BoundingRadius * 2, Color.Yellow);
+                        Utility.DrawCircle(WShadow.ServerPosition, WShadow.BoundingRadius * 2, Color.Yellow);
                     }
                 }
             }
