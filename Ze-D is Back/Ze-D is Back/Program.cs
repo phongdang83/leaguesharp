@@ -32,7 +32,7 @@ namespace Zed
         private static Vector3 wpos;
         private static Vector3 rpos;
         private static int shadowdelay = 0;
-        private static int delayw = 300;
+        private static int delayw = 500;
 
         private static void Main(string[] args)
         {
@@ -407,10 +407,6 @@ namespace Zed
                 ObjectManager.Player.Spellbook.GetSpell(SpellSlot.W).ManaCost && target.Distance(_player.Position) < 850)
                 {
                     CastW(target);
-                    if (ObjectManager.Player.Mana >
-                       ObjectManager.Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost + ObjectManager.Player.Spellbook.GetSpell(SpellSlot.E).ManaCost)
-                    CastE();
-                    
                     if (target.IsValidTarget() && WShadow != null && target.Distance(WShadow.ServerPosition) < 900)
                         
                     CastQ(target);
