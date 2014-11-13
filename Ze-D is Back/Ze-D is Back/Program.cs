@@ -76,10 +76,11 @@ namespace Zed
             _config.SubMenu("Combo")
                 .AddItem(new MenuItem("ActiveCombo", "Combo!").SetValue(new KeyBind(32, KeyBindType.Press)));
             _config.SubMenu("Combo")
-    .AddItem(new MenuItem("TheLine", "The Line Combo").SetValue(new KeyBind(226, KeyBindType.Press)));
+    .AddItem(new MenuItem("TheLine", "The Line Combo").SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press)));
 
             //Harass
             _config.AddSubMenu(new Menu("Harass", "Harass"));
+            _config.SubMenu("Harass").AddItem(new MenuItem("longhar", "Long Poke (toggle)").SetValue(new KeyBind("U".ToCharArray()[0], KeyBindType.Toggle)));
             _config.SubMenu("Harass").AddItem(new MenuItem("UseItemsharass", "Use Tiamat/Hydra")).SetValue(true);
             _config.SubMenu("Harass").AddItem(new MenuItem("UseWH", "Use W")).SetValue(true);
             _config.SubMenu("Harass")
@@ -177,7 +178,7 @@ namespace Zed
             _config.AddSubMenu(new Menu("Drawings", "Drawings"));
             _config.SubMenu("Drawings").AddItem(new MenuItem("DrawQ", "Draw Q")).SetValue(true);
             _config.SubMenu("Drawings").AddItem(new MenuItem("DrawE", "Draw E")).SetValue(true);
-            _config.SubMenu("Drawings").AddItem(new MenuItem("DrawQW", "Draw best harras")).SetValue(true);
+            _config.SubMenu("Drawings").AddItem(new MenuItem("DrawQW", "Draw long harras")).SetValue(true);
             _config.SubMenu("Drawings").AddItem(new MenuItem("DrawR", "Draw R")).SetValue(true);
             _config.SubMenu("Drawings").AddItem(new MenuItem("shadowd", "Shadow Position")).SetValue(true);
             _config.SubMenu("Drawings").AddItem(new MenuItem("damagetest", "Damage Text")).SetValue(true);
@@ -277,13 +278,14 @@ namespace Zed
             if (Items.HasItem(3144) && Items.CanUseItem(3144))
                 damage += _player.GetItemDamage(enemy, Damage.DamageItems.Bilgewater);
             if (_q.IsReady())
-                damage += _player.GetSpellDamage(enemy, SpellSlot.Q) * 2;
+                damage += _player.GetSpellDamage(enemy, SpellSlot.Q) *1.5;
             if (_q.IsReady())
                 damage += _player.GetSpellDamage(enemy, SpellSlot.W);
             if (_e.IsReady())
-                damage += _player.GetSpellDamage(enemy, SpellSlot.E) * 2;
+                damage += _player.GetSpellDamage(enemy, SpellSlot.E) ;
             if (_r.IsReady())
                 damage += _player.GetSpellDamage(enemy, SpellSlot.R);
+                damage += (_r.Level * 0.15 + 0.05) * (damage - ObjectManager.Player.GetSummonerSpellDamage(enemy, Damage.SummonerSpell.Ignite));
 
             return (float)damage;
         }
@@ -383,6 +385,14 @@ namespace Zed
         {
             var target = SimpleTs.GetTarget(2000, SimpleTs.DamageType.Physical);
             var useItemsH = _config.Item("UseItemsharass").GetValue<bool>();
+            if (target.IsValidTarget() && _config.Item("longhar").GetValue<KeyBind>().Active && _w.IsReady() && _q.IsReady() && ObjectManager.Player.Mana >
+                ObjectManager.Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost +
+                ObjectManager.Player.Spellbook.GetSpell(SpellSlot.W).ManaCost && target.Distance(_player.Position) > 850 &&
+                target.Distance(_player.Position) < 1400)
+            {
+                CastW(target);
+                CastQ(target);
+            }
 
             if (target.IsValidTarget() && !_w.IsReady() && _q.IsReady() && 
                            (target.Distance(_player.Position) < 900 || target.Distance(WShadow.ServerPosition) < 900))
@@ -394,7 +404,7 @@ namespace Zed
                 if (target.IsValidTarget() && _w.IsReady() && _q.IsReady() && _config.Item("UseWH").GetValue<bool>() &&
                 ObjectManager.Player.Mana >
                 ObjectManager.Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost +
-                ObjectManager.Player.Spellbook.GetSpell(SpellSlot.W).ManaCost && target.Distance(_player.Position) < 720)
+                ObjectManager.Player.Spellbook.GetSpell(SpellSlot.W).ManaCost && target.Distance(_player.Position) < 850)
                 {
                     CastW(target);
                     if (ObjectManager.Player.Mana >
@@ -635,7 +645,7 @@ namespace Zed
                 return;
             if (ShadowStage != ShadowCastStage.First)
                 return;
-            _w.Cast(target.Position);
+            _w.Cast(target.Position,true);
             shadowdelay = Environment.TickCount;
 
         }
@@ -653,6 +663,7 @@ namespace Zed
                 _q.Cast(target, false, true);
             }
             else if (_q.WillHit(target, target.ServerPosition))
+
                 _q.Cast(target, false, true);
 
         }
@@ -765,7 +776,7 @@ namespace Zed
             {
                 if (_config.Item("DrawQ").GetValue<bool>())
                 {
-                    Utility.DrawCircle(ObjectManager.Player.Position, _q.Range, System.Drawing.Color.White,
+                    Utility.DrawCircle(ObjectManager.Player.Position, _q.Range, System.Drawing.Color.Blue,
                         _config.Item("CircleThickness").GetValue<Slider>().Value,
                         _config.Item("CircleQuality").GetValue<Slider>().Value);
                 }
@@ -775,15 +786,15 @@ namespace Zed
                         _config.Item("CircleThickness").GetValue<Slider>().Value,
                         _config.Item("CircleQuality").GetValue<Slider>().Value);
                 }
-                if (_config.Item("DrawQW").GetValue<bool>())
+                if (_config.Item("DrawQW").GetValue<bool>() && _config.Item("longhar").GetValue<KeyBind>().Active)
                 {
-                    Utility.DrawCircle(ObjectManager.Player.Position, 720, System.Drawing.Color.White,
+                    Utility.DrawCircle(ObjectManager.Player.Position, 1400, System.Drawing.Color.Yellow,
                         _config.Item("CircleThickness").GetValue<Slider>().Value,
                         _config.Item("CircleQuality").GetValue<Slider>().Value);
                 }
                 if (_config.Item("DrawR").GetValue<bool>())
                 {
-                    Utility.DrawCircle(ObjectManager.Player.Position, _r.Range, System.Drawing.Color.White,
+                    Utility.DrawCircle(ObjectManager.Player.Position, _r.Range, System.Drawing.Color.Blue,
                         _config.Item("CircleThickness").GetValue<Slider>().Value,
                         _config.Item("CircleQuality").GetValue<Slider>().Value);
                 }
@@ -798,9 +809,9 @@ namespace Zed
                 {
                     Drawing.DrawCircle(ObjectManager.Player.Position, _e.Range, System.Drawing.Color.White);
                 }
-                if (_config.Item("DrawQW").GetValue<bool>())
+                if (_config.Item("DrawQW").GetValue<bool>() && _config.Item("longhar").GetValue<KeyBind>().Active)
                 {
-                    Drawing.DrawCircle(ObjectManager.Player.Position, 720, System.Drawing.Color.White);
+                    Drawing.DrawCircle(ObjectManager.Player.Position, 1400, System.Drawing.Color.White);
                 }
                 if (_config.Item("DrawR").GetValue<bool>())
                 {
