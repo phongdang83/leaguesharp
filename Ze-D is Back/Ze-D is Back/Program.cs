@@ -1,8 +1,10 @@
 #region
 /*
 * Credits to:
- * Kortatu
- * Legacy
+ * Kortatu(thx for great common lib)
+ * Legacy( i got orianna farm logic and some cool examples from your wip zed) 
+ * Pingo(for finding me proper commands whenever i ask hes the life saver!!  :p)
+ * andre(he answers whenever i ask him sthng)
  */
 using System;
 using System.Collections.Generic;
@@ -29,7 +31,8 @@ namespace Zed
         private static Items.Item _tiamat, _hydra, _blade, _bilge, _rand, _lotis, _youmuu;
         private static Vector3 linepos;
         private static Vector3 castpos;
-        private static Vector3 wpos;
+        private static int ticktock;
+        private static float hppi;
         private static Vector3 rpos;
         private static int shadowdelay = 0;
         private static int delayw = 500;
@@ -71,12 +74,13 @@ namespace Zed
             //Combo
             _config.AddSubMenu(new Menu("Combo", "Combo"));
             _config.SubMenu("Combo").AddItem(new MenuItem("UseWC", "Use W (also gap close)")).SetValue(true);
-            _config.SubMenu("Combo").AddItem(new MenuItem("AutoE", "Auto E")).SetValue(true);
             _config.SubMenu("Combo").AddItem(new MenuItem("UseIgnitecombo", "Use Ignite(rush for it)")).SetValue(true);
             _config.SubMenu("Combo")
                 .AddItem(new MenuItem("ActiveCombo", "Combo!").SetValue(new KeyBind(32, KeyBindType.Press)));
             _config.SubMenu("Combo")
     .AddItem(new MenuItem("TheLine", "The Line Combo").SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press)));
+            _config.SubMenu("Combo").AddItem(new MenuItem("RbackC", "R back on combo")).SetValue(false);
+            _config.SubMenu("Combo").AddItem(new MenuItem("RbackL", "R back on Line Combo")).SetValue(false);
 
             //Harass
             _config.AddSubMenu(new Menu("Harass", "Harass"));
@@ -131,7 +135,6 @@ namespace Zed
                 .AddItem(new MenuItem("UseItemslane", "Use Hydra/Tiamat"))
                 .SetValue(true);
             _config.SubMenu("Farm").SubMenu("LaneFarm").AddItem(new MenuItem("UseQL", "Q LaneClear")).SetValue(true);
-            _config.SubMenu("Farm").SubMenu("LaneFarm").AddItem(new MenuItem("UseWL", "W LaneClear")).SetValue(true);
             _config.SubMenu("Farm").SubMenu("LaneFarm").AddItem(new MenuItem("UseEL", "E LaneClear")).SetValue(true);
             _config.SubMenu("Farm")
                 .SubMenu("LaneFarm")
@@ -173,6 +176,7 @@ namespace Zed
             _config.SubMenu("Misc").AddItem(new MenuItem("UseIgnitekill", "Use Ignite KillSteal")).SetValue(true);
             _config.SubMenu("Misc").AddItem(new MenuItem("UseQM", "Use Q KillSteal")).SetValue(true);
             _config.SubMenu("Misc").AddItem(new MenuItem("UseEM", "Use E KillSteal")).SetValue(true);
+             _config.SubMenu("Misc").AddItem(new MenuItem("AutoE", "Auto E")).SetValue(true);
 
             //Drawings
             _config.AddSubMenu(new Menu("Drawings", "Drawings"));
@@ -192,6 +196,7 @@ namespace Zed
             Drawing.OnDraw += Drawing_OnDraw;
             Game.OnGameUpdate += Game_OnGameUpdate;
             Game.OnWndProc += OnWndProc;
+            Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
             WebClient wc = new WebClient();
             wc.Proxy = null;
 
@@ -206,6 +211,14 @@ namespace Zed
             if (args.Msg == 514)
             {
                 linepos = Game.CursorPos;
+
+            }
+        }
+        private static void OnProcessSpell(Obj_AI_Base unit, GameObjectProcessSpellCastEventArgs castedSpell)
+        {
+            if (unit.IsMe && castedSpell.SData.Name == "zedult")
+            {
+                ticktock = Environment.TickCount + 200;
 
             }
         }
@@ -245,15 +258,27 @@ namespace Zed
                     _e.Cast();
             }
 
+            if (Environment.TickCount <= ticktock)
+            {
+                foreach (var enemy in
+                ObjectManager.Get<Obj_AI_Hero>().Where(enemyVisible => enemyVisible.IsValidTarget()))
+                {
+                    if (enemy.HasBuff("zedulttargetmark", true))
+                    {
+                        hppi = enemy.Health;
+                    }
+                }
+            }
 
             if (LastCastedSpell.LastCastPacketSent.Slot == SpellSlot.R)
             {
                 Obj_AI_Minion shadow;
                 shadow = ObjectManager.Get<Obj_AI_Minion>()
-                        .FirstOrDefault(minion => minion.IsVisible && minion.IsAlly  && minion.Name == "Shadow");
-              
-                rpos = shadow.ServerPosition; 
+                        .FirstOrDefault(minion => minion.IsVisible && minion.IsAlly && minion.Name == "Shadow");
+
+                rpos = shadow.ServerPosition;
             }
+
 
             _player = ObjectManager.Player;
             _orbwalker.SetAttack(true);
@@ -278,14 +303,14 @@ namespace Zed
             if (Items.HasItem(3144) && Items.CanUseItem(3144))
                 damage += _player.GetItemDamage(enemy, Damage.DamageItems.Bilgewater);
             if (_q.IsReady())
-                damage += _player.GetSpellDamage(enemy, SpellSlot.Q) *1.5;
+                damage += _player.GetSpellDamage(enemy, SpellSlot.Q) * 1.5;
             if (_q.IsReady())
                 damage += _player.GetSpellDamage(enemy, SpellSlot.W);
             if (_e.IsReady())
-                damage += _player.GetSpellDamage(enemy, SpellSlot.E) ;
+                damage += _player.GetSpellDamage(enemy, SpellSlot.E);
             if (_r.IsReady())
                 damage += _player.GetSpellDamage(enemy, SpellSlot.R);
-                damage += (_r.Level * 0.15 + 0.05) * (damage - ObjectManager.Player.GetSummonerSpellDamage(enemy, Damage.SummonerSpell.Ignite));
+            damage += (_r.Level * 0.15 + 0.05) * (damage - ObjectManager.Player.GetSummonerSpellDamage(enemy, Damage.SummonerSpell.Ignite));
 
             return (float)damage;
         }
@@ -315,16 +340,21 @@ namespace Zed
             {
                 Harass();
             }
+            if (target != null && target.HasBuff("zedulttargetmark", true) && _config.Item("RbackC").GetValue<bool>() && 
+                 UltStage == UltCastStage.Second && target.Health <
+               (hppi * (_r.Level * 0.15 + 0.05)  - 3 * ((ObjectManager.Player.Level - 1) * 4 + 14)))
+            {
+                _r.Cast();
+            }
 
             UseItemes(target);
-            CastQ(target);
+            _q.Cast(target.Position);
             CastE();
         }
 
         private static void TheLine()
         {
             var target = SimpleTs.GetTarget(_r.Range, SimpleTs.DamageType.Physical);
-
 
             if (target == null)
             {
@@ -334,6 +364,7 @@ namespace Zed
             {
                 _player.IssueOrder(GameObjectOrder.AttackUnit, target);
             }
+
             if ((linepos.X == 0 && linepos.Y == 0) || !_r.IsReady())
             {
                 return;
@@ -374,7 +405,12 @@ namespace Zed
             _q.Cast(target.Position);
             CastE();
 
-            if (target != null && WShadow != null && target.Distance(_player.Position) > 250 && (target.Distance(WShadow.ServerPosition) < target.Distance(_player.Position)))
+            if (target != null && target.HasBuff("zedulttargetmark", true) && _config.Item("RbackL").GetValue<bool>() && target.Health <
+              (hppi * (_r.Level * 0.15 + 0.05) + 50 + 3*((ObjectManager.Player.Level-1)*4+14)))
+            {
+                _r.Cast();
+            }
+            if (target != null && WShadow != null && UltStage == UltCastStage.Second && target.Distance(_player.Position) > 250 && (target.Distance(WShadow.ServerPosition) < target.Distance(_player.Position)))
             {
                 _w.Cast();
             }
@@ -394,22 +430,23 @@ namespace Zed
                 CastQ(target);
             }
 
-            if (target.IsValidTarget() && !_w.IsReady() && _q.IsReady() && 
+            if (target.IsValidTarget() && !_w.IsReady() && _q.IsReady() &&
                            (target.Distance(_player.Position) < 900 || target.Distance(WShadow.ServerPosition) < 900))
             {
                 CastQ(target);
             }
-            else 
+            else
             {
                 if (target.IsValidTarget() && _w.IsReady() && _q.IsReady() && _config.Item("UseWH").GetValue<bool>() &&
                 ObjectManager.Player.Mana >
                 ObjectManager.Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost +
                 ObjectManager.Player.Spellbook.GetSpell(SpellSlot.W).ManaCost && target.Distance(_player.Position) < 850)
                 {
-                    CastW(target);
+
+
                     if (target.IsValidTarget() && WShadow != null && target.Distance(WShadow.ServerPosition) < 900)
-                        
-                    CastQ(target);
+
+                        CastQ(target);
                 }
             }
 
@@ -423,7 +460,7 @@ namespace Zed
                 _hydra.Cast();
             }
             CastE();
-            
+
         }
 
         private static void Laneclear()
@@ -608,7 +645,7 @@ namespace Zed
             {
                 return
                     ObjectManager.Get<Obj_AI_Minion>()
-                        .FirstOrDefault(minion => minion.IsVisible && minion.IsAlly  && (minion.ServerPosition != rpos) && minion.Name == "Shadow" );
+                        .FirstOrDefault(minion => minion.IsVisible && minion.IsAlly && (minion.ServerPosition != rpos) && minion.Name == "Shadow");
             }
         }
         private static Obj_AI_Minion RShadow
@@ -617,10 +654,21 @@ namespace Zed
             {
                 return
                     ObjectManager.Get<Obj_AI_Minion>()
-                        .FirstOrDefault(minion => minion.IsVisible && minion.IsAlly  && (minion.ServerPosition == rpos) && minion.Name == "Shadow");
+                        .FirstOrDefault(minion => minion.IsVisible && minion.IsAlly && (minion.ServerPosition == rpos) && minion.Name == "Shadow");
             }
         }
 
+        private static UltCastStage UltStage
+        {
+            get
+            {
+                if (!_r.IsReady()) return UltCastStage.Cooldown;
+
+                return (ObjectManager.Player.Spellbook.GetSpell(SpellSlot.R).Name == "zedult"
+                    ? UltCastStage.First
+                    : UltCastStage.Second);
+            }
+        }
 
 
         private static ShadowCastStage ShadowStage
@@ -641,7 +689,7 @@ namespace Zed
                 return;
             if (ShadowStage != ShadowCastStage.First)
                 return;
-            _w.Cast(target.Position,true);
+            _w.Cast(target.Position, true);
             shadowdelay = Environment.TickCount;
 
         }
@@ -674,6 +722,12 @@ namespace Zed
                 _e.Cast();
         }
 
+        internal enum UltCastStage
+        {
+            First,
+            Second,
+            Cooldown
+        }
 
         internal enum ShadowCastStage
         {
@@ -748,6 +802,14 @@ namespace Zed
                     var enemyVisible in
                         ObjectManager.Get<Obj_AI_Hero>().Where(enemyVisible => enemyVisible.IsValidTarget()))
                 {
+                    if (enemyVisible.HasBuff("zedulttargetmark", true) && enemyVisible.Health <
+                            (hppi * (_r.Level * 0.15 + 0.05)  - 3 * ((ObjectManager.Player.Level - 1) * 4 + 14)))
+                    {
+                        Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)[0] - 40,
+                            Drawing.WorldToScreen(enemyVisible.Position)[1] + 30, Color.Yellow,
+                            "deathmark will kill");
+                    }
+
                     if (ComboDamage(enemyVisible) > enemyVisible.Health)
                     {
                         Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)[0] + 50,
